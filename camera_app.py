@@ -77,7 +77,6 @@ class WindowClass(QMainWindow, from_class) :
         self.record = Camera(self)
         self.record.daemon = True
 
-
         # 파일 열기
         self.open_btn.clicked.connect(self.openFile)
         
@@ -93,26 +92,59 @@ class WindowClass(QMainWindow, from_class) :
         self.capture_btn.clicked.connect(self.capture)
 
         # HSV 슬라이더
-        self.hue_slider.valueChanged.connect(self.change_hsv)
-        self.sat_slider.valueChanged.connect(self.change_hsv)
-        self.value_slider.valueChanged.connect(self.change_hsv)
+        self.hue_slider.valueChanged.connect(self.change_image)
+        self.sat_slider.valueChanged.connect(self.change_image)
+        self.value_slider.valueChanged.connect(self.change_image)
 
         # RGB 슬라이더
-        self.red_slider.valueChanged.connect(self.change_rgb)
-        self.green_slider.valueChanged.connect(self.change_rgb)
-        self.blue_slider.valueChanged.connect(self.change_rgb)
+        self.red_slider.valueChanged.connect(self.change_image)
+        self.green_slider.valueChanged.connect(self.change_image)
+        self.blue_slider.valueChanged.connect(self.change_image)
 
         # 밝기 조절 슬라이더
-        self.light_slider.valueChanged.connect(self.change_light)
+        self.light_slider.valueChanged.connect(self.change_image)
+
+    def change_image(self):
+        light = self.light_slider.value()
+
+        red = self.red_slider.value()
+        green = self.green_slider.value()
+        blue = self.blue_slider.value()
+
+        hue = self.hue_slider.value()
+        saturation = self.sat_slider.value()
+        value = self.value_slider.value()
+
+        hsv_image = cv2.cvtColor(self.image, cv2.COLOR_RGB2HSV)
+        hsv_image[..., 0] = (hsv_image[..., 0] + hue) % 180
+        hsv_image[..., 1] = np.clip(hsv_image[..., 1] + saturation, 0, 255)
+        hsv_image[..., 2] = np.clip(hsv_image[..., 2] + value, 0, 255)
+
+        bgr_image = cv2.cvtColor(hsv_image, cv2.COLOR_HSV2BGR)
+        bgr_image[:, :, 0] = np.clip(bgr_image[:, :, 0] + blue, 0, 255)
+        bgr_image[:, :, 1] = np.clip(bgr_image[:, :, 1] + green, 0, 255)
+        bgr_image[:, :, 2] = np.clip(bgr_image[:, :, 2] + red, 0, 255)
+
+        lab_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2Lab)
+        lab_image[:, :, 0] = np.clip(lab_image[:, :, 0] + light, 0, 255)
+
+        rgb_image = cv2.cvtColor(lab_image, cv2.COLOR_Lab2RGB)
+        
+        self.image = rgb_image
+        q_image = QImage(self.image.data, self.image.shape[1], self.image.shape[0], self.image.strides[0], QImage.Format_RGB888)
+
+        self.pixmap = QPixmap.fromImage(q_image)
+        self.pixmap = self.pixmap.scaled(self.window.width(), self.window.height())
+        self.window.setPixmap(self.pixmap)
+
 
     def change_light(self):
         light = self.light_slider.value()
 
         lab_image = cv2.cvtColor(self.image, cv2.COLOR_RGB2Lab)
-
         lab_image[:, :, 0] = np.clip(lab_image[:, :, 0] + light, 0, 255)
-
         rgb_image = cv2.cvtColor(lab_image, cv2.COLOR_LAB2RGB)
+        
 
         q_image = QImage(rgb_image.data, rgb_image.shape[1], rgb_image.shape[0], rgb_image.strides[0], QImage.Format_RGB888)
 
@@ -138,7 +170,6 @@ class WindowClass(QMainWindow, from_class) :
         self.pixmap = self.pixmap.scaled(self.window.width(), self.window.height())
         self.window.setPixmap(self.pixmap)
 
-    
     def change_hsv(self):
         hue = self.hue_slider.value()
         saturation = self.sat_slider.value()
