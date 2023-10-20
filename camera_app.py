@@ -305,7 +305,7 @@ class WindowClass(QMainWindow, from_class) :
 
     def cameraStop(self):
         self.camera.running = False
-        self.video.release
+        self.video.release()
 
     def playStart(self):
         self.playVideo.running = True
@@ -314,7 +314,7 @@ class WindowClass(QMainWindow, from_class) :
     
     def playStop(self):
         self.playVideo.running = False
-        self.video.release
+        self.video.release()
 
     def updatePlay(self):
         retval, image = self.video.read()
