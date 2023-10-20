@@ -40,9 +40,10 @@ class WindowClass(QMainWindow, from_class) :
         # 변수 초기화
         self.isCameraOn = False
         self.isRecOn = False
+        self.isfilterOn = False
         self.video_capture = None
 
-        # 버튼 초기화
+        # 버튼 숨기기
         self.rec_btn.hide()
         self.capture_btn.hide()
 
@@ -82,6 +83,9 @@ class WindowClass(QMainWindow, from_class) :
         # 파일 열기
         self.open_btn.clicked.connect(self.openFile)
         
+        # 동영상 재생
+        self.playVideo.update.connect(self.updatePlay)
+
         # 카메라 시작
         self.camera_btn.clicked.connect(self.clickCamera)
         self.camera.update.connect(self.updateCamera)
@@ -106,7 +110,34 @@ class WindowClass(QMainWindow, from_class) :
         # 밝기 조절 슬라이더
         self.light_slider.valueChanged.connect(self.change_image)
 
-        # self.playVideo.update.connect(self.change_image)
+        # 동영상 필터 적용
+        self.playVideo.update.connect(self.change_image)
+
+        # 필터
+        # self.sharpning_btn.clicked.connect(self.click_filter)
+        # self.bilateral_btn.clicked.connect(self.click_filter)
+
+    def click_filter(self):
+        if self.isfilterOn == False:
+            self.isCameraOn = True
+            self.change_filter()
+        else:
+            self.isfilterOn = False
+            self.image_filter = self.tmp
+
+    def change_filter(self):
+        ycrb_image = cv2.cvtColor(self.image, cv2.COLOR_RGB2YCrCb)
+
+        ycrb_image_b = ycrb_image[:, :, 0].astype(np.float32)
+        blr_image = cv2.GaussianBlur(ycrb_image_b, (0, 0), 2.0)
+        ycrb_image[:, :, 0] = np.clip(2. * ycrb_image_b - blr_image, 0, 255).astype(np.uint8)
+        self.image_filter = cv2.cvtColor(ycrb_image, cv2.COLOR_YCrCb2RGB)
+
+        q_image = QImage(self.image_filter.data, self.image_filter.shape[1], self.image_filter.shape[0], self.image_filter.strides[0], QImage.Format_RGB888)
+
+        self.pixmap = QPixmap.fromImage(q_image)
+        self.pixmap = self.pixmap.scaled(self.window.width(), self.window.height())
+        self.window.setPixmap(self.pixmap)
 
     def change_image(self):
         light = self.light_slider.value()
@@ -132,9 +163,10 @@ class WindowClass(QMainWindow, from_class) :
         lab_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2Lab)
         lab_image[:, :, 0] = np.clip(lab_image[:, :, 0] + light, 0, 255)
 
-        rgb_image = cv2.cvtColor(lab_image, cv2.COLOR_Lab2RGB)
-        
-        q_image = QImage(rgb_image.data, rgb_image.shape[1], rgb_image.shape[0], rgb_image.strides[0], QImage.Format_RGB888)
+        self.image = cv2.cvtColor(lab_image, cv2.COLOR_Lab2RGB)
+        self.tmp  = self.image
+
+        q_image = QImage(self.image.data, self.image.shape[1], self.image.shape[0], self.image.strides[0], QImage.Format_RGB888)
 
         self.pixmap = QPixmap.fromImage(q_image)
         self.pixmap = self.pixmap.scaled(self.window.width(), self.window.height())
@@ -273,11 +305,32 @@ class WindowClass(QMainWindow, from_class) :
         self.camera.running = False
         self.video.release
 
-    def openFile(self):
-        file,_ = QFileDialog.getOpenFileName(filter='Image (*.*)')
+    def playStart(self):
+        self.playVideo.running = True
+        self.playVideo.start()
+        self.video = cv2.VideoCapture(self.file)
+    
+    def playStop(self):
+        self.playVideo.running = False
+        self.video.release
 
-        if file.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tiff")):
-            self.image = cv2.imread(file)
+    def updatePlay(self):
+        retval, image = self.video.read()
+        if retval:
+            self.image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            h, w, c = self.image.shape
+            qimage = QImage(self.image.data, w, h, w*c, QImage.Format_RGB888)
+            self.pixmap = self.pixmap.fromImage(qimage)
+            self.pixmap = self.pixmap.scaled(self.window.width(), self.window.height())
+            self.window.setPixmap(self.pixmap)
+        else:
+            self.playStop()
+
+    def openFile(self):
+        self.file,_ = QFileDialog.getOpenFileName(filter='Image (*.*)')
+
+        if self.file.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tiff")):
+            self.image = cv2.imread(self.file)
             self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
 
             h, w, c = self.image.shape
@@ -288,41 +341,7 @@ class WindowClass(QMainWindow, from_class) :
 
             self.window.setPixmap(self.pixmap)
         else:
-            self.video_capture = cv2.VideoCapture(file)
-
-            if self.video_capture.isOpened():
-                self.videoStart()
-                while True:
-                    ret, frame = self.video_capture.read()
-                    
-                    if not ret:
-                        self.videoStop()
-                        break
-                    
-                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    
-                    height, width, _ = frame.shape
-                    bytes_per_line = 3 * width
-                    q_image = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888)
-
-                    self.pixmap = QPixmap.fromImage(q_image)
-                    self.pixmap = self.pixmap.scaled(self.window.width(), self.window.height())
-
-                    self.window.setPixmap(self.pixmap)
-                    QApplication.processEvents()
-
-                    time.sleep(0.05)  # 저장된 동영상에 맞게 setting
-
-                self.video_capture.release()
-
-    def videoStart(self):
-        self.playVideo.running = True
-        self.playVideo.start()
-    def videoStop(self):
-        self.playVideo.running = False
-        self.video_capture.release
-
-
+            self.playStart()
 
 
 
