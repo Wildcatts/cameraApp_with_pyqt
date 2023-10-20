@@ -23,7 +23,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>asdfasf</string>
+    <string/>
    </property>
    <property name="alignment">
     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
@@ -335,6 +335,9 @@
       <width>89</width>
       <height>25</height>
      </rect>
+    </property>
+    <property name="autoFillBackground">
+     <bool>false</bool>
     </property>
     <property name="text">
      <string>sharpning</string>

@@ -89,10 +89,12 @@ class WindowClass(QMainWindow, from_class) :
         # 카메라 시작
         self.camera_btn.clicked.connect(self.clickCamera)
         self.camera.update.connect(self.updateCamera)
+        self.camera.update.connect(self.change_image)
 
         # 녹화 시작
         self.rec_btn.clicked.connect(self.clickRecord)
         self.record.update.connect(self.updateRecording)
+        self.record.update.connect(self.change_image)
 
         # 화면 캡쳐
         self.capture_btn.clicked.connect(self.capture)
