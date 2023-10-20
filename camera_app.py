@@ -76,6 +76,8 @@ class WindowClass(QMainWindow, from_class) :
         self.camera.daemon = True
         self.record = Camera(self)
         self.record.daemon = True
+        self.playVideo = Camera(self)
+        self.playVideo.daemon = True
 
         # 파일 열기
         self.open_btn.clicked.connect(self.openFile)
@@ -104,6 +106,8 @@ class WindowClass(QMainWindow, from_class) :
         # 밝기 조절 슬라이더
         self.light_slider.valueChanged.connect(self.change_image)
 
+        # self.playVideo.update.connect(self.change_image)
+
     def change_image(self):
         light = self.light_slider.value()
 
@@ -130,8 +134,7 @@ class WindowClass(QMainWindow, from_class) :
 
         rgb_image = cv2.cvtColor(lab_image, cv2.COLOR_Lab2RGB)
         
-        self.image = rgb_image
-        q_image = QImage(self.image.data, self.image.shape[1], self.image.shape[0], self.image.strides[0], QImage.Format_RGB888)
+        q_image = QImage(rgb_image.data, rgb_image.shape[1], rgb_image.shape[0], rgb_image.strides[0], QImage.Format_RGB888)
 
         self.pixmap = QPixmap.fromImage(q_image)
         self.pixmap = self.pixmap.scaled(self.window.width(), self.window.height())
@@ -288,10 +291,12 @@ class WindowClass(QMainWindow, from_class) :
             self.video_capture = cv2.VideoCapture(file)
 
             if self.video_capture.isOpened():
+                self.videoStart()
                 while True:
                     ret, frame = self.video_capture.read()
                     
                     if not ret:
+                        self.videoStop()
                         break
                     
                     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -309,6 +314,13 @@ class WindowClass(QMainWindow, from_class) :
                     time.sleep(0.05)  # 저장된 동영상에 맞게 setting
 
                 self.video_capture.release()
+
+    def videoStart(self):
+        self.playVideo.running = True
+        self.playVideo.start()
+    def videoStop(self):
+        self.playVideo.running = False
+        self.video_capture.release
 
 
 
