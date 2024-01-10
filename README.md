@@ -3,6 +3,7 @@
 <p align="center">
   <img src="https://github.com/Wildcatts/cameraApp_with_pyqt/assets/104709955/8d291acc-4167-484b-8cd3-5c69afd32a17" width="90%" style="float:left">
 </p>
+
 ### 기능리스트
 1. 파일 오픈 or 카메라 연결
     - Open 버튼 : 저장된 사진 or 동영상을 window에 띄운다.
